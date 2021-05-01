@@ -100,10 +100,11 @@ public class Timetable {
         } catch (Exception e) {
             e.printStackTrace();
         }
+        System.out.println("Расписание:");
         for (Lesson lesson : lessonList) {
             ObjectMapper mapper = new ObjectMapper();
             String jsonString = mapper.writeValueAsString(lesson);
-            System.out.println(jsonString); //вывод на консоль
+            System.out.println(jsonString); //вывод на консоль расписания
         }
     }
 }
