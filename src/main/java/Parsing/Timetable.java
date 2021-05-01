@@ -15,79 +15,95 @@ import java.util.List;
 public class Timetable {
     public static void main(String[] args) throws JsonProcessingException {
 
-        String searchQuery = "Кошелев Сергей";
+        String search = "Гл";
+        String realSearch = "Глухих Михаил";
         String baseUrl = "https://ruz.spbstu.ru/";
         WebClient client = new WebClient();
         client.getOptions().setCssEnabled(false);
         client.getOptions().setJavaScriptEnabled(false);
-        Calendar calendar1 = new GregorianCalendar(2021, 4 , 28);
-        Calendar calendar2 = new GregorianCalendar(2021, 5 , 20);
-        ArrayList<Lesson> list = new ArrayList<Lesson>();
+        Calendar from = new GregorianCalendar(2021, 4 , 28);
+        Calendar to = new GregorianCalendar(2021, 5 , 20);
+        ArrayList<Lesson> lessonList = new ArrayList<>();
+        ArrayList<Teacher> teacherList = new ArrayList<>();
+        String str = "";
+
         try {
-            //выбор препода
-            String searchUrl = baseUrl + "search/teacher?q=" + URLEncoder.encode(searchQuery, "UTF-8");
+            String searchUrl = baseUrl + "search/teacher?q=" + URLEncoder.encode(search, "UTF-8");
             HtmlPage page = client.getPage(searchUrl);
-            HtmlElement item1 = (HtmlElement) page.getFirstByXPath("//div/div/div/ul/li/div/a");
-            String str2 = item1.toString();
-            String[] bruh = str2.split("href=\"/");
-            String[] bruh1 = bruh[1].split("\" data");
-            String str3 = bruh1[0];
+            List<HtmlElement> teachersList = (List<HtmlElement>) page.getByXPath(".//li[@class='search-result__item']");
+            for (HtmlElement teacherH : teachersList) { //формирование списка преподов
+                Teacher teacher = new Teacher();
+
+                HtmlElement nameH = (HtmlElement) teacherH.getFirstByXPath(".//div[@class='search-result__title']");
+                teacher.setName(nameH.asText());
+
+                HtmlElement linkH = (HtmlElement) teacherH.getFirstByXPath(".//div[@class='search-result__title']/a");
+                String str2 = linkH.toString();
+                String[] bruh = str2.split("href=\"/");
+                String[] meh = bruh[1].split("\" data");
+                teacher.setLink(meh[0]);
+
+                HtmlElement position = (HtmlElement) teacherH.getFirstByXPath(".//div[@class='search-result__comment']");
+                teacher.setPosition(position.asText());
+
+                teacherList.add(teacher);
+            }
+            for (Teacher teacher : teacherList) { //вывод на консоль преподов
+                ObjectMapper mapper = new ObjectMapper();
+                String jsonString = mapper.writeValueAsString(teacher);
+                System.out.println(jsonString); //вывод на консоль
+            }
+            //выбор нужного чела
+            for (Teacher t : teacherList) {
+                if (t.getName().contains(realSearch)) {
+                    str = t.getLink();
+                }
+            }
             //переход на страницу препода
-            while (calendar1.before(calendar2)) {
-                String searchUrl2 = baseUrl + str3 + "?date=" + calendar1.get(Calendar.YEAR) + "-" +
-                        calendar1.get(Calendar.MONTH) + "-" + calendar1.get(Calendar.DAY_OF_MONTH);
+            while (from.before(to)) {
+                String searchUrl2 = baseUrl + str + "?date=" + from.get(Calendar.YEAR) + "-" +
+                        from.get(Calendar.MONTH) + "-" + from.get(Calendar.DAY_OF_MONTH);
                 HtmlPage page2 = client.getPage(searchUrl2);
-                List<HtmlElement> items = (List<HtmlElement>) page2.getByXPath(".//li[@class='schedule__day']");
-                for (HtmlElement htmlItem1 : items) {
-                    HtmlElement dayH = (HtmlElement) htmlItem1.getFirstByXPath(".//div[@class='schedule__date']");
-                    String day = dayH.asText();
-                    System.out.println("День: " + day);
-                    List<HtmlElement> items2 = (List<HtmlElement>) htmlItem1.getByXPath(".//li[@class='lesson']");
-                    for (HtmlElement htmlItem2 : items2) {
-                        Lesson lesson = new Lesson();
-                        HtmlElement whatH = (HtmlElement) htmlItem2.getFirstByXPath(".//div[@class='lesson__subject']");
-                        String what = whatH.asText();
-                        lesson.setName(what.substring(11));
-                        lesson.setTime(what.substring(0, 11));
-                        System.out.println("Предмет: " + what.substring(11));
-                        System.out.println("Время: " + what.substring(0, 11));
+                List<HtmlElement> days = (List<HtmlElement>) page2.getByXPath(".//li[@class='schedule__day']");
+                for (HtmlElement day : days) {
+                    HtmlElement dateH = (HtmlElement) day.getFirstByXPath(".//div[@class='schedule__date']");
+                    String date = dateH.asText();
+                    List<HtmlElement> lessons = (List<HtmlElement>) day.getByXPath(".//li[@class='lesson']");
+                    for (HtmlElement lesson : lessons) {
+                        Lesson lessonX = new Lesson();
 
-                        HtmlElement typeH = (HtmlElement) htmlItem2.getFirstByXPath(".//div[@class='lesson__type']");
-                        String type = typeH.asText();
-                        lesson.setType(type);
-                        System.out.println("Тип пары: " + type);
+                        HtmlElement subject = (HtmlElement) lesson.getFirstByXPath(".//div[@class='lesson__subject']");
+                        lessonX.setName(subject.asText().substring(11));
+                        lessonX.setTime(subject.asText().substring(0, 11));
 
-                        HtmlElement groupH = (HtmlElement) htmlItem2.getFirstByXPath(".//span[@class='lesson-groups__additional']");
-                        String group = groupH.asText();
+                        HtmlElement type = (HtmlElement) lesson.getFirstByXPath(".//div[@class='lesson__type']");
+                        lessonX.setType(type.asText());
 
-                        HtmlElement groupsH = (HtmlElement) htmlItem2.getFirstByXPath(".//div[@class='lesson-groups__list']");
-                        String groups = groupsH.asText();
-                        lesson.setGroups(groups);
-                        System.out.println(groups);
+                        List<HtmlElement> groupsH = (List<HtmlElement>) lesson.getByXPath(".//span[@class='lesson__group']");
+                        ArrayList<String> groups = new ArrayList<String>();
+                        for (HtmlElement group : groupsH) {
+                            groups.add(group.asText());
+                        }
+                        lessonX.setGroups(groups);
 
-                        HtmlElement teachersH = (HtmlElement) htmlItem2.getFirstByXPath(".//div[@class='lesson__teachers']");
-                        String teachers = teachersH.asText();
-                        lesson.setTeachers(teachers);
-                        System.out.println("Преподы: " + teachers);
+                        HtmlElement teachers = (HtmlElement) day.getFirstByXPath(".//div[@class='lesson__teachers']");
+                        lessonX.setTeachers(teachers.asText());
 
-                        HtmlElement gdeH = (HtmlElement) htmlItem2.getFirstByXPath(".//div[@class='lesson__places']");
-                        String gde = gdeH.asText();
-                        lesson.setPlace(gde);
-                        System.out.println("Место: " + gde);
-                        System.out.println();
-                        lesson.setDay(day);
-                        list.add(lesson);
+                        HtmlElement place = (HtmlElement) day.getFirstByXPath(".//div[@class='lesson__places']");
+                        lessonX.setPlace(place.asText());
+                        lessonX.setDay(date);
+                        lessonList.add(lessonX);
                     }
                 }
-                calendar1.add(Calendar.DAY_OF_MONTH, 7);
+                from.add(Calendar.DAY_OF_MONTH, 7); //переход на некст неделю
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
-        for (Lesson lesson : list) {
+        for (Lesson lesson : lessonList) {
             ObjectMapper mapper = new ObjectMapper();
             String jsonString = mapper.writeValueAsString(lesson);
-            System.out.println(jsonString);
+            System.out.println(jsonString); //вывод на консоль
         }
     }
 }

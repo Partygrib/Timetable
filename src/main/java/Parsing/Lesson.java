@@ -1,10 +1,12 @@
 package Parsing;
 
+import java.util.ArrayList;
+
 public class Lesson {
     private String name;
     private String time;
     private String type;
-    private String groups;
+    private ArrayList<String> groups;
     private String teachers;
     private String place;
     private String day;
@@ -19,10 +21,10 @@ public class Lesson {
     public void setTime(String time) {
         this.time = time;
     }
-    public String getGroups() {
+    public ArrayList<String> getGroups() {
         return groups;
     }
-    public void setGroups(String groups) {
+    public void setGroups(ArrayList<String> groups) {
         this.groups = groups;
     }
     public String getType() {
